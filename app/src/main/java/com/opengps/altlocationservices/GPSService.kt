@@ -51,7 +51,11 @@ class GPSService : Service() {
                     }
                 }
                 for(i in 0..60) {
-                    setMock(result!!.first.first, result.first.second, result.second, this@GPSService)
+                    if (setMock(result!!.first.first, result.first.second, result.second, this@GPSService)){
+                        status.value = "Working"
+                    } else {
+                        status.value = "Mocking not allowed"
+                    }
                     delay(UPDATE_INTERVAL)
                 }
             }

@@ -1,6 +1,7 @@
 package com.opengps.altlocationservices
 
 import android.annotation.SuppressLint
+import android.app.AppOpsManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -11,8 +12,10 @@ import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.os.SystemClock
+import android.provider.Settings
 import android.telephony.CellInfoLte
 import android.telephony.TelephonyManager
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -90,6 +93,7 @@ class MainActivity : ComponentActivity() {
                         if(!allGranted.value) {
                             Text("This app must be granted precise location and notification permissions to provide location services")
                         } else {
+			    Text(text = "Status: ${status.value?:""}", modifier = Modifier.padding(8.dp))
                             Text(text = "Latitude: ${coords.value?.first?:""}", modifier = Modifier.padding(8.dp))
                             Text(text = "Longitude: ${coords.value?.second?:""}", modifier = Modifier.padding(8.dp))
 
@@ -213,6 +217,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+val status = mutableStateOf<String>("")
 val coords = mutableStateOf<Pair<Double, Double>?>(null)
 val cellTowers = mutableStateOf(listOf<CellTower>())
 val wifiAccessPoints = mutableStateOf(listOf<WifiAccessPoint>())
@@ -277,7 +282,18 @@ suspend fun getCellInfo(ctx: Context): Pair<Pair<Double, Double>, Double> {
     return Pair(Pair(lat, lon), accuracy)
 }
 
-fun setMock(latitude: Double, longitude: Double, accuracy: Double, ctx: Context) {
+fun isMockLocationAllowed(context: Context): Boolean {
+    val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+    val op = AppOpsManager.OPSTR_MOCK_LOCATION
+    val mode = appOps.unsafeCheckOpNoThrow(op, android.os.Process.myUid(), context.packageName)
+    return mode == AppOpsManager.MODE_ALLOWED
+}
+
+fun setMock(latitude: Double, longitude: Double, accuracy: Double, ctx: Context): Boolean {
+    if (!isMockLocationAllowed(ctx)) {
+        Log.w("AltLocationServices", "Location mocking not allowed")
+        return false
+    }
     val lm = ctx.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
     val mocLocationProvider = LocationManager.NETWORK_PROVIDER //lm.getBestProvider( criteria, true );
@@ -297,4 +313,5 @@ fun setMock(latitude: Double, longitude: Double, accuracy: Double, ctx: Context)
     mockLocation.accuracy = accuracy.toFloat()
     mockLocation.elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos()
     lm.setTestProviderLocation(mocLocationProvider, mockLocation)
+    return true
 }
