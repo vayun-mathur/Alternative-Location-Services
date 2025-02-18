@@ -14,4 +14,7 @@ your location data.
 
 ## Todo:
 - bluetooth scanning
-- proper user interface
+
+## extra info
+- app supports android 13 and newer. For both privacy and security, you should be updating your phone regularly so
+I will not be supporting anything older than this
