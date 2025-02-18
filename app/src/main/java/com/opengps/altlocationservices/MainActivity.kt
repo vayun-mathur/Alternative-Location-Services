@@ -280,7 +280,7 @@ suspend fun getCellInfo(ctx: Context): Pair<Pair<Double, Double>, Double> {
 fun setMock(latitude: Double, longitude: Double, accuracy: Double, ctx: Context) {
     val lm = ctx.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
-    val mocLocationProvider = LocationManager.GPS_PROVIDER //lm.getBestProvider( criteria, true );
+    val mocLocationProvider = LocationManager.NETWORK_PROVIDER //lm.getBestProvider( criteria, true );
 
     lm.addTestProvider(
         mocLocationProvider, false, false,
