@@ -18,15 +18,28 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.opengps.altlocationservices.ui.theme.AltLocationServicesTheme
 import io.ktor.client.HttpClient
@@ -40,7 +53,6 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import org.json.JSONArray
 import org.json.JSONObject
 
 val str1 = mutableStateOf("")
@@ -53,15 +65,15 @@ class MainActivity : ComponentActivity() {
 
         val allGranted = mutableStateOf(false)
         val requestPermissionLauncher =
-            registerForActivityResult(ActivityResultContracts.RequestPermission()
-            ) { isGranted: Boolean ->
-                allGranted.value = isGranted
+            registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()
+            ) { isGranted: Map<String, Boolean> ->
+                allGranted.value = isGranted[android.Manifest.permission.POST_NOTIFICATIONS] == true && isGranted[android.Manifest.permission.ACCESS_FINE_LOCATION] == true
             }
         if(ContextCompat.checkSelfPermission(
                 this,
                 android.Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
+            requestPermissionLauncher.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.POST_NOTIFICATIONS))
         } else {
             allGranted.value = true
         }
@@ -74,18 +86,136 @@ class MainActivity : ComponentActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Column(
                         Modifier
-                            .padding(innerPadding)
-                            .verticalScroll(rememberScrollState())){
+                            .padding(innerPadding)){
                         if(!allGranted.value) {
-                            Text("This app must be granted precise location permissions to provide location services")
+                            Text("This app must be granted precise location and notification permissions to provide location services")
+                        } else {
+                            Text(text = "Latitude: ${coords.value?.first?:""}", modifier = Modifier.padding(8.dp))
+                            Text(text = "Longitude: ${coords.value?.second?:""}", modifier = Modifier.padding(8.dp))
+
+                            HorizontalDivider()
+
+                            Text(
+                                text = "Cell Towers",
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(8.dp)
+                            )
+                            val localDensity = LocalDensity.current
+                            Row(Modifier.verticalScroll(rememberScrollState())) {
+                                var height by remember { mutableStateOf(0.dp) }
+                                Column(Modifier.onGloballyPositioned { coordinates ->
+                                    height = with(localDensity) { coordinates.size.height.toDp() }
+                                }) {
+                                    var tabWidth by remember { mutableStateOf(0.dp) }
+                                    Text("Radio Type", Modifier.onGloballyPositioned { coordinates ->
+                                        tabWidth = with(localDensity) { coordinates.size.width.toDp() }
+                                    })
+                                    cellTowers.value.forEach {
+                                        HorizontalDivider(Modifier.width(tabWidth))
+                                        Text(it.radioType)
+                                    }
+                                }
+                                VerticalDivider(Modifier.height(height))
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    var tabWidth by remember { mutableStateOf(0.dp) }
+                                    Text("    ID    ", Modifier.onGloballyPositioned { coordinates ->
+                                        tabWidth = with(localDensity) { coordinates.size.width.toDp() }
+                                    })
+                                    cellTowers.value.forEach {
+                                        HorizontalDivider(Modifier.width(tabWidth))
+                                        Text(it.cellId.toString())
+                                    }
+                                }
+                                VerticalDivider(Modifier.height(height))
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    var tabWidth by remember { mutableStateOf(0.dp) }
+                                    Text(" MCC ", Modifier.onGloballyPositioned { coordinates ->
+                                        tabWidth = with(localDensity) { coordinates.size.width.toDp() }
+                                    })
+                                    cellTowers.value.forEach {
+                                        HorizontalDivider(Modifier.width(tabWidth))
+                                        Text(it.mobileCountryCode.toString())
+                                    }
+                                }
+                                VerticalDivider(Modifier.height(height))
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    var tabWidth by remember { mutableStateOf(0.dp) }
+                                    Text(" MNC ", Modifier.onGloballyPositioned { coordinates ->
+                                        tabWidth = with(localDensity) { coordinates.size.width.toDp() }
+                                    })
+                                    cellTowers.value.forEach {
+                                        HorizontalDivider(Modifier.width(tabWidth))
+                                        Text(it.mobileNetworkCode.toString())
+                                    }
+                                }
+                                VerticalDivider(Modifier.height(height))
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    var tabWidth by remember { mutableStateOf(0.dp) }
+                                    Text("  LAC  ", Modifier.onGloballyPositioned { coordinates ->
+                                        tabWidth = with(localDensity) { coordinates.size.width.toDp() }
+                                    })
+                                    cellTowers.value.forEach {
+                                        HorizontalDivider(Modifier.width(tabWidth))
+                                        Text(it.locationAreaCode.toString())
+                                    }
+                                }
+                                VerticalDivider(Modifier.height(height))
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    var tabWidth by remember { mutableStateOf(0.dp) }
+                                    Text("Strength", Modifier.onGloballyPositioned { coordinates ->
+                                        tabWidth = with(localDensity) { coordinates.size.width.toDp() }
+                                    })
+                                    cellTowers.value.forEach {
+                                        HorizontalDivider(Modifier.width(tabWidth))
+                                        Text(it.signalStrength.toString())
+                                    }
+                                }
+                            }
+
+                            HorizontalDivider()
+
+                            Text(
+                                text = "WiFi Access Points",
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(8.dp)
+                            )
+                            Row(Modifier.verticalScroll(rememberScrollState())) {
+                                var height by remember { mutableStateOf(0.dp) }
+                                Column(Modifier.onGloballyPositioned { coordinates ->
+                                    height = with(localDensity) { coordinates.size.height.toDp() }
+                                }, horizontalAlignment = Alignment.CenterHorizontally) {
+                                    var tabWidth by remember { mutableStateOf(0.dp) }
+                                    Text("   MAC Address   ", Modifier.onGloballyPositioned { coordinates ->
+                                        tabWidth = with(localDensity) { coordinates.size.width.toDp() }
+                                    })
+                                    wifiAccessPoints.value.forEach {
+                                        HorizontalDivider(Modifier.width(tabWidth))
+                                        Text(it.macAddress)
+                                    }
+                                }
+                                VerticalDivider(Modifier.height(height))
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    var tabWidth by remember { mutableStateOf(0.dp) }
+                                    Text("Strength", Modifier.onGloballyPositioned { coordinates ->
+                                        tabWidth = with(localDensity) { coordinates.size.width.toDp() }
+                                    })
+                                    wifiAccessPoints.value.forEach {
+                                        HorizontalDivider(Modifier.width(tabWidth))
+                                        Text(it.signalStrength.toString())
+                                    }
+                                }
+                            }
                         }
-                        Text(str1.value)
                     }
                 }
             }
         }
     }
 }
+
+val coords = mutableStateOf<Pair<Double, Double>?>(null)
+val cellTowers = mutableStateOf(listOf<CellTower>())
+val wifiAccessPoints = mutableStateOf(listOf<WifiAccessPoint>())
 
 @Serializable
 data class CellTower(
@@ -142,6 +272,9 @@ suspend fun getCellInfo(ctx: Context): Pair<Double, Double> {
     str1.value = json.toString(4) + "\n" + JSONObject(Json.encodeToString(resp)).toString(4)
 
     setMock(lat, lon, accuracy, ctx)
+    cellTowers.value = tels
+    wifiAccessPoints.value = wifis
+    coords.value = Pair(lat, lon)
     return Pair(lat, lon)
 }
 
