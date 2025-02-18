@@ -5,6 +5,9 @@ database to provide network based location services. Unlike standard GPS, this w
 and inside buildings. Unlike Google's location services, neither this app nor BeaconDB will sell
 your location data.
 
+If you are using this app, please install [NeoStumbler](https://github.com/mjaakko/NeoStumbler)
+to contribute to the BeaconDB dataset so you can get a more accurate location from this app.
+
 ## how to set up
 - download apk from releases
 - give app location and notification permissions
