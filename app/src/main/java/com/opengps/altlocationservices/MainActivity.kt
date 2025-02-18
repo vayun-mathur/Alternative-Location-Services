@@ -240,7 +240,7 @@ data class Request(
 )
 
 @SuppressLint("MissingPermission")
-suspend fun getCellInfo(ctx: Context): Pair<Double, Double> {
+suspend fun getCellInfo(ctx: Context): Pair<Pair<Double, Double>, Double> {
     val tel = ctx.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
 
     //from Android M up must use getAllCellInfo
@@ -271,14 +271,13 @@ suspend fun getCellInfo(ctx: Context): Pair<Double, Double> {
 
     str1.value = json.toString(4) + "\n" + JSONObject(Json.encodeToString(resp)).toString(4)
 
-    setMock(lat, lon, accuracy, ctx)
     cellTowers.value = tels
     wifiAccessPoints.value = wifis
     coords.value = Pair(lat, lon)
-    return Pair(lat, lon)
+    return Pair(Pair(lat, lon), accuracy)
 }
 
-private fun setMock(latitude: Double, longitude: Double, accuracy: Double, ctx: Context) {
+fun setMock(latitude: Double, longitude: Double, accuracy: Double, ctx: Context) {
     val lm = ctx.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
     val mocLocationProvider = LocationManager.GPS_PROVIDER //lm.getBestProvider( criteria, true );

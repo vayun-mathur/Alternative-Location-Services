@@ -19,7 +19,7 @@ class GPSService : Service() {
 
     private val CHANNEL_ID = "MyForegroundServiceChannel"
     private val NOTIFICATION_ID = 1
-    private val UPDATE_INTERVAL = 120*1000L // 5 seconds
+    private val UPDATE_INTERVAL = 2*1000L // 5 seconds
     private var serviceJob: Job? = null
 
     override fun onCreate() {
@@ -37,11 +37,12 @@ class GPSService : Service() {
 
     private fun startUpdatingNotification() {
         serviceJob = CoroutineScope(Dispatchers.IO).launch {
+            var result: Pair<Pair<Double, Double>, Double>? = null
             while (true) {
                 try {
-                    val result = func() // Call your function here
+                    result = func() // Call your function here
                     withContext(Dispatchers.Main) {
-                        updateNotification(result)
+                        updateNotification("Coord: ${result.first}")
                     }
                 } catch (e: Exception) {
                     Log.e("MyForegroundService", "Error in func() or updating notification", e)
@@ -49,16 +50,19 @@ class GPSService : Service() {
                         updateNotification("Error: ${e.message}")
                     }
                 }
-                delay(UPDATE_INTERVAL)
+                for(i in 0..60) {
+                    setMock(result!!.first.first, result.first.second, result.second, this@GPSService)
+                    delay(UPDATE_INTERVAL)
+                }
             }
         }
     }
 
-    private suspend fun func(): String {
+    private suspend fun func(): Pair<Pair<Double, Double>, Double> {
         val coords = getCellInfo(this@GPSService)
         // Replace this with your actual function
         Log.d("MyForegroundService", "func() called")
-        return "Coords: $coords"
+        return coords
     }
 
     private fun createNotificationChannel() {
