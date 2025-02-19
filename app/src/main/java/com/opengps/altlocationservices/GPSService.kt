@@ -81,7 +81,7 @@ class GPSService : Service() {
 
     private fun createNotification(text: String): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("My Foreground Service")
+            .setContentTitle("AltLocationServices")
             .setContentText(text)
             .setSmallIcon(R.drawable.baseline_notifications_24) // Replace with your icon
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
