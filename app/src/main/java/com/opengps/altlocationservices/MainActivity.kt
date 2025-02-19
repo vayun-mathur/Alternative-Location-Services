@@ -12,7 +12,6 @@ import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.os.SystemClock
-import android.provider.Settings
 import android.telephony.CellInfoLte
 import android.telephony.TelephonyManager
 import android.util.Log
@@ -27,11 +26,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -93,17 +96,14 @@ class MainActivity : ComponentActivity() {
                         if(!allGranted.value) {
                             Text("This app must be granted precise location and notification permissions to provide location services")
                         } else {
-			    Text(text = "Status: ${status.value?:""}", modifier = Modifier.padding(8.dp))
-                            Text(text = "Latitude: ${coords.value?.first?:""}", modifier = Modifier.padding(8.dp))
-                            Text(text = "Longitude: ${coords.value?.second?:""}", modifier = Modifier.padding(8.dp))
+                            SelectableText("Status: ${status.value}", Modifier.padding(8.dp))
+                            SelectableText("Latitude: ${coords.value?.first?:""}", Modifier.padding(8.dp))
+                            SelectableText("Longitude: ${coords.value?.second?:""}", Modifier.padding(8.dp))
+                            SelectableText("Accuracy: ${accuracy.value?:""}", Modifier.padding(8.dp))
 
                             HorizontalDivider()
 
-                            Text(
-                                text = "Cell Towers",
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(8.dp)
-                            )
+                            Text("Cell Towers", Modifier.padding(8.dp), fontWeight = FontWeight.Bold)
                             val localDensity = LocalDensity.current
                             Row(Modifier.verticalScroll(rememberScrollState())) {
                                 var height by remember { mutableStateOf(0.dp) }
@@ -217,8 +217,16 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-val status = mutableStateOf<String>("")
+@Composable
+fun SelectableText(text: String, modifier: Modifier) {
+    BasicTextField(text, {}, modifier, singleLine = true, readOnly = true, textStyle = LocalTextStyle.current.copy(
+        color = LocalContentColor.current,
+    ))
+}
+
+val status = mutableStateOf("")
 val coords = mutableStateOf<Pair<Double, Double>?>(null)
+val accuracy = mutableStateOf<Double?>(null)
 val cellTowers = mutableStateOf(listOf<CellTower>())
 val wifiAccessPoints = mutableStateOf(listOf<WifiAccessPoint>())
 
@@ -270,7 +278,7 @@ suspend fun getCellInfo(ctx: Context): Pair<Pair<Double, Double>, Double> {
     }
     val res = response.bodyAsText()
     val json = JSONObject(res)
-    val accuracy = json.getDouble("accuracy")
+    val acc = json.getDouble("accuracy")
     val lat = json.getJSONObject("location").getDouble("lat")
     val lon = json.getJSONObject("location").getDouble("lng")
 
@@ -278,8 +286,9 @@ suspend fun getCellInfo(ctx: Context): Pair<Pair<Double, Double>, Double> {
 
     cellTowers.value = tels
     wifiAccessPoints.value = wifis
+    accuracy.value = acc
     coords.value = Pair(lat, lon)
-    return Pair(Pair(lat, lon), accuracy)
+    return Pair(Pair(lat, lon), acc)
 }
 
 fun isMockLocationAllowed(context: Context): Boolean {
@@ -296,7 +305,7 @@ fun setMock(latitude: Double, longitude: Double, accuracy: Double, ctx: Context)
     }
     val lm = ctx.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
-    val mocLocationProvider = LocationManager.NETWORK_PROVIDER //lm.getBestProvider( criteria, true );
+    val mocLocationProvider = LocationManager.NETWORK_PROVIDER
 
     lm.addTestProvider(
         mocLocationProvider, false, false,
