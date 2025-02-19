@@ -73,7 +73,7 @@ class GPSService : Service() {
         val serviceChannel = NotificationChannel(
             CHANNEL_ID,
             "My Foreground Service Channel",
-            NotificationManager.IMPORTANCE_DEFAULT
+            NotificationManager.IMPORTANCE_NONE
         )
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(serviceChannel)
