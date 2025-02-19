@@ -238,12 +238,26 @@ data class CellTower(
     val locationAreaCode: Long,
     val cellId: Long,
     val signalStrength: Long,
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if(other !is CellTower) return false
+        return radioType == other.radioType &&
+                mobileCountryCode == other.mobileCountryCode &&
+                mobileNetworkCode == other.mobileNetworkCode &&
+                locationAreaCode == other.locationAreaCode &&
+                cellId == other.cellId
+    }
+}
 @Serializable
 data class WifiAccessPoint(
     val macAddress: String,
     val signalStrength: Int? = null
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if(other !is WifiAccessPoint) return false
+        return macAddress == other.macAddress
+    }
+}
 
 @Serializable
 data class Request(
@@ -251,6 +265,8 @@ data class Request(
     val wifiAccessPoints: List<WifiAccessPoint>? = null,
     val fallbacks: Map<String, Boolean>,
 )
+
+val anythingChanged = mutableStateOf(false)
 
 @SuppressLint("MissingPermission")
 suspend fun getCellInfo(ctx: Context): Pair<Pair<Double, Double>, Double> {
@@ -265,6 +281,10 @@ suspend fun getCellInfo(ctx: Context): Pair<Pair<Double, Double>, Double> {
     val apList: List<ScanResult> = wifiManager.scanResults
     val wifis = apList.map { WifiAccessPoint(it.BSSID, it.level) }
 
+    anythingChanged.value = (cellTowers.value != tels || wifiAccessPoints.value != wifis)
+    if(!anythingChanged.value) {
+        return coords.value!! to accuracy.value!!
+    }
 
     val client = HttpClient(CIO) {
         install(ContentNegotiation) {
@@ -283,7 +303,6 @@ suspend fun getCellInfo(ctx: Context): Pair<Pair<Double, Double>, Double> {
     val lon = json.getJSONObject("location").getDouble("lng")
 
     str1.value = json.toString(4) + "\n" + JSONObject(Json.encodeToString(resp)).toString(4)
-
     cellTowers.value = tels
     wifiAccessPoints.value = wifis
     accuracy.value = acc
