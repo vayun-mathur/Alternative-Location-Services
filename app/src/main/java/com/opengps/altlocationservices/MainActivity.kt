@@ -70,10 +70,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val allGranted = mutableStateOf(false)
+        val requestPermissionBackgroundLocation = registerForActivityResult(ActivityResultContracts.RequestPermission()){}
         val requestPermissionLauncher =
             registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()
             ) { isGranted: Map<String, Boolean> ->
                 allGranted.value = isGranted[android.Manifest.permission.POST_NOTIFICATIONS] == true && isGranted[android.Manifest.permission.ACCESS_FINE_LOCATION] == true
+                requestPermissionBackgroundLocation.launch(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION)
             }
         if(ContextCompat.checkSelfPermission(
                 this,
@@ -82,6 +84,7 @@ class MainActivity : ComponentActivity() {
             requestPermissionLauncher.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.POST_NOTIFICATIONS))
         } else {
             allGranted.value = true
+            requestPermissionBackgroundLocation.launch(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION)
         }
         setContent {
             LaunchedEffect(allGranted.value) {
