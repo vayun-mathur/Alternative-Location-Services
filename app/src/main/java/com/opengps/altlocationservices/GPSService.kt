@@ -4,7 +4,9 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.Context
 import android.content.Intent
+import android.location.LocationManager
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -34,9 +36,20 @@ class GPSService : Service() {
     }
 
     private fun startUpdatingNotification() {
+        val locationManager = this.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         serviceJob = CoroutineScope(Dispatchers.IO).launch {
             var result: LocationValue? = null
             while (true) {
+                if (
+                    !locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+                        && !locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+                ) {
+                  status.value = "Location disabled"
+                  updateNotification(status.value)
+                  delay(UPDATE_INTERVAL)
+                  continue
+                }
+                status.value = "Waiting for location"
                 try {
                     Log.d("MockLocationService", "getCellInfo() called")
                     result = getCellInfo(this@GPSService)
