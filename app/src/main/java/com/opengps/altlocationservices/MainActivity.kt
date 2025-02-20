@@ -58,8 +58,6 @@ import kotlinx.serialization.json.Json
 import org.json.JSONObject
 import kotlin.math.min
 
-val str1 = mutableStateOf("")
-
 object ServiceStateTracker {
   var isServiceRunning: Boolean = false
 }
@@ -272,7 +270,6 @@ suspend fun getCellInfo(ctx: Context): LocationValue {
     val lat = json.getJSONObject("location").getDouble("lat")
     val lon = json.getJSONObject("location").getDouble("lng")
 
-    str1.value = json.toString(4) + "\n" + JSONObject(Json.encodeToString(resp)).toString(4)
     cellTowers = tels
     wifiAccessPoints = wifis
     if (coords.value == LocationValue(lat, lon, acc)) {
