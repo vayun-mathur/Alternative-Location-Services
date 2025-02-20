@@ -38,8 +38,8 @@ class GPSService : Service() {
     private fun startUpdatingNotification() {
         val locationManager = this.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         serviceJob = CoroutineScope(Dispatchers.IO).launch {
-            var result: LocationValue? = null
             while (true) {
+                var result: LocationValue? = null
                 if (
                     !locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
                         && !locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
