@@ -19,7 +19,6 @@ class GPSService : Service() {
 
     private val CHANNEL_ID = "MyForegroundServiceChannel"
     private val NOTIFICATION_ID = 1
-    private val UPDATE_INTERVAL = 2*1000L // 5 seconds
     private var serviceJob: Job? = null
 
     override fun onCreate() {
@@ -50,13 +49,13 @@ class GPSService : Service() {
                         updateNotification("Error: ${e.message}")
                     }
                 }
-                for(i in 0..60) {
+                for(i in 0..(curTimeout/5)) {
                     if (setMock(result!!.first.first, result.first.second, result.second, this@GPSService)){
                         status.value = "Working"
                     } else {
                         status.value = "Mocking not allowed"
                     }
-                    delay(UPDATE_INTERVAL)
+                    delay(5000L) // 5 seconds
                 }
             }
         }

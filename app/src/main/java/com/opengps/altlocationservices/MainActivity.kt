@@ -60,6 +60,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.json.JSONObject
+import kotlin.math.min
 
 val str1 = mutableStateOf("")
 
@@ -271,6 +272,14 @@ data class Request(
 
 val anythingChanged = mutableStateOf(false)
 
+
+
+
+private const val minTimeout = 10 // 10 second interval minimum
+private const val maxTimeout = 240 // 4 minutes maximum
+private const val timeoutFactor = 2
+var curTimeout = minTimeout
+
 @SuppressLint("MissingPermission")
 suspend fun getCellInfo(ctx: Context): Pair<Pair<Double, Double>, Double> {
     val tel = ctx.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
@@ -286,6 +295,7 @@ suspend fun getCellInfo(ctx: Context): Pair<Pair<Double, Double>, Double> {
 
     anythingChanged.value = (cellTowers.value != tels || wifiAccessPoints.value != wifis)
     if(!anythingChanged.value) {
+        curTimeout = min(curTimeout * timeoutFactor, maxTimeout)
         return coords.value!! to accuracy.value!!
     }
 
@@ -301,6 +311,10 @@ suspend fun getCellInfo(ctx: Context): Pair<Pair<Double, Double>, Double> {
     }
     val res = response.bodyAsText()
     val json = JSONObject(res)
+    if(!json.has("accuracy")) {
+        curTimeout = min(curTimeout * timeoutFactor, maxTimeout)
+        return coords.value!! to accuracy.value!!
+    }
     val acc = json.getDouble("accuracy")
     val lat = json.getJSONObject("location").getDouble("lat")
     val lon = json.getJSONObject("location").getDouble("lng")
@@ -309,7 +323,14 @@ suspend fun getCellInfo(ctx: Context): Pair<Pair<Double, Double>, Double> {
     cellTowers.value = tels
     wifiAccessPoints.value = wifis
     accuracy.value = acc
+    if(coords.value == Pair(lat, lon)) {
+        curTimeout = min(curTimeout * timeoutFactor, maxTimeout)
+        return coords.value!! to accuracy.value!!
+    }
+
     coords.value = Pair(lat, lon)
+    curTimeout = minTimeout
+
     return Pair(Pair(lat, lon), acc)
 }
 
