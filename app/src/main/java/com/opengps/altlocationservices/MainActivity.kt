@@ -60,6 +60,9 @@ import kotlin.math.min
 
 val str1 = mutableStateOf("")
 
+object ServiceStateTracker {
+  var isServiceRunning: Boolean = false
+}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -93,8 +96,10 @@ class MainActivity : ComponentActivity() {
         }
         setContent {
             LaunchedEffect(allGranted.value) {
-                if (allGranted.value)
+                if(allGranted.value && !ServiceStateTracker.isServiceRunning) {
                     startForegroundService(Intent(this@MainActivity, GPSService::class.java))
+                    ServiceStateTracker.isServiceRunning = true
+                }
             }
             AltLocationServicesTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
