@@ -8,9 +8,9 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.location.provider.ProviderProperties
-import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.os.Bundle
+import android.os.Process
 import android.os.SystemClock
 import android.telephony.CellInfoLte
 import android.telephony.TelephonyManager
@@ -19,33 +19,28 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridScope
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.opengps.altlocationservices.ui.theme.AltLocationServicesTheme
 import io.ktor.client.HttpClient
@@ -69,151 +64,44 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
         val allGranted = mutableStateOf(false)
-        val requestPermissionBackgroundLocation = registerForActivityResult(ActivityResultContracts.RequestPermission()){}
+        val requestPermissionBackgroundLocation =
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
         val requestPermissionLauncher =
-            registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()
+            registerForActivityResult(
+                ActivityResultContracts.RequestMultiplePermissions()
             ) { isGranted: Map<String, Boolean> ->
-                allGranted.value = isGranted[android.Manifest.permission.POST_NOTIFICATIONS] == true && isGranted[android.Manifest.permission.ACCESS_FINE_LOCATION] == true
+                allGranted.value =
+                    isGranted[android.Manifest.permission.POST_NOTIFICATIONS] == true && isGranted[android.Manifest.permission.ACCESS_FINE_LOCATION] == true
                 requestPermissionBackgroundLocation.launch(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION)
             }
-        if(ContextCompat.checkSelfPermission(
+        if (ContextCompat.checkSelfPermission(
                 this,
                 android.Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissionLauncher.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.POST_NOTIFICATIONS))
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissionLauncher.launch(
+                arrayOf(
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+                )
+            )
         } else {
             allGranted.value = true
             requestPermissionBackgroundLocation.launch(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION)
         }
         setContent {
             LaunchedEffect(allGranted.value) {
-                if(allGranted.value)
+                if (allGranted.value)
                     startForegroundService(Intent(this@MainActivity, GPSService::class.java))
             }
             AltLocationServicesTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Column(
-                        Modifier
-                            .padding(innerPadding)){
-                        if(!allGranted.value) {
+                    Column(Modifier.padding(innerPadding)) {
+                        if (!allGranted.value)
                             Text("This app must be granted precise location and notification permissions to provide location services")
-                        } else {
-                            SelectableText("Status: ${status.value}", Modifier.padding(8.dp))
-                            SelectableText("Latitude: ${coords.value?.first?:""}", Modifier.padding(8.dp))
-                            SelectableText("Longitude: ${coords.value?.second?:""}", Modifier.padding(8.dp))
-                            SelectableText("Accuracy: ${accuracy.value?:""}", Modifier.padding(8.dp))
-
-                            HorizontalDivider()
-
-                            Text("Cell Towers", Modifier.padding(8.dp), fontWeight = FontWeight.Bold)
-                            val localDensity = LocalDensity.current
-                            Row(Modifier.verticalScroll(rememberScrollState())) {
-                                var height by remember { mutableStateOf(0.dp) }
-                                Column(Modifier.onGloballyPositioned { coordinates ->
-                                    height = with(localDensity) { coordinates.size.height.toDp() }
-                                }) {
-                                    var tabWidth by remember { mutableStateOf(0.dp) }
-                                    Text("Radio Type", Modifier.onGloballyPositioned { coordinates ->
-                                        tabWidth = with(localDensity) { coordinates.size.width.toDp() }
-                                    })
-                                    cellTowers.value.forEach {
-                                        HorizontalDivider(Modifier.width(tabWidth))
-                                        Text(it.radioType)
-                                    }
-                                }
-                                VerticalDivider(Modifier.height(height))
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    var tabWidth by remember { mutableStateOf(0.dp) }
-                                    Text("    ID    ", Modifier.onGloballyPositioned { coordinates ->
-                                        tabWidth = with(localDensity) { coordinates.size.width.toDp() }
-                                    })
-                                    cellTowers.value.forEach {
-                                        HorizontalDivider(Modifier.width(tabWidth))
-                                        Text(it.cellId.toString())
-                                    }
-                                }
-                                VerticalDivider(Modifier.height(height))
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    var tabWidth by remember { mutableStateOf(0.dp) }
-                                    Text(" MCC ", Modifier.onGloballyPositioned { coordinates ->
-                                        tabWidth = with(localDensity) { coordinates.size.width.toDp() }
-                                    })
-                                    cellTowers.value.forEach {
-                                        HorizontalDivider(Modifier.width(tabWidth))
-                                        Text(it.mobileCountryCode.toString())
-                                    }
-                                }
-                                VerticalDivider(Modifier.height(height))
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    var tabWidth by remember { mutableStateOf(0.dp) }
-                                    Text(" MNC ", Modifier.onGloballyPositioned { coordinates ->
-                                        tabWidth = with(localDensity) { coordinates.size.width.toDp() }
-                                    })
-                                    cellTowers.value.forEach {
-                                        HorizontalDivider(Modifier.width(tabWidth))
-                                        Text(it.mobileNetworkCode.toString())
-                                    }
-                                }
-                                VerticalDivider(Modifier.height(height))
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    var tabWidth by remember { mutableStateOf(0.dp) }
-                                    Text("  LAC  ", Modifier.onGloballyPositioned { coordinates ->
-                                        tabWidth = with(localDensity) { coordinates.size.width.toDp() }
-                                    })
-                                    cellTowers.value.forEach {
-                                        HorizontalDivider(Modifier.width(tabWidth))
-                                        Text(it.locationAreaCode.toString())
-                                    }
-                                }
-                                VerticalDivider(Modifier.height(height))
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    var tabWidth by remember { mutableStateOf(0.dp) }
-                                    Text("Strength", Modifier.onGloballyPositioned { coordinates ->
-                                        tabWidth = with(localDensity) { coordinates.size.width.toDp() }
-                                    })
-                                    cellTowers.value.forEach {
-                                        HorizontalDivider(Modifier.width(tabWidth))
-                                        Text(it.signalStrength.toString())
-                                    }
-                                }
-                            }
-
-                            HorizontalDivider()
-
-                            Text(
-                                text = "WiFi Access Points",
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(8.dp)
-                            )
-                            Row(Modifier.verticalScroll(rememberScrollState())) {
-                                var height by remember { mutableStateOf(0.dp) }
-                                Column(Modifier.onGloballyPositioned { coordinates ->
-                                    height = with(localDensity) { coordinates.size.height.toDp() }
-                                }, horizontalAlignment = Alignment.CenterHorizontally) {
-                                    var tabWidth by remember { mutableStateOf(0.dp) }
-                                    Text("   MAC Address   ", Modifier.onGloballyPositioned { coordinates ->
-                                        tabWidth = with(localDensity) { coordinates.size.width.toDp() }
-                                    })
-                                    wifiAccessPoints.value.forEach {
-                                        HorizontalDivider(Modifier.width(tabWidth))
-                                        Text(it.macAddress)
-                                    }
-                                }
-                                VerticalDivider(Modifier.height(height))
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    var tabWidth by remember { mutableStateOf(0.dp) }
-                                    Text("Strength", Modifier.onGloballyPositioned { coordinates ->
-                                        tabWidth = with(localDensity) { coordinates.size.width.toDp() }
-                                    })
-                                    wifiAccessPoints.value.forEach {
-                                        HorizontalDivider(Modifier.width(tabWidth))
-                                        Text(it.signalStrength.toString())
-                                    }
-                                }
-                            }
-                        }
+                        else
+                            MainPage()
                     }
                 }
             }
@@ -222,17 +110,63 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
+fun MainPage() {
+    SelectableText("Status: ${status.value}", Modifier.padding(8.dp))
+    SelectableText("Latitude: ${coords.value?.lat ?: ""}", Modifier.padding(8.dp))
+    SelectableText("Longitude: ${coords.value?.lon ?: ""}", Modifier.padding(8.dp))
+    SelectableText("Accuracy: ${coords.value?.acc ?: ""}", Modifier.padding(8.dp))
+    HorizontalDivider()
+    Text("Cell Towers", Modifier.padding(8.dp), fontWeight = FontWeight.Bold)
+    LazyVerticalGrid(GridCells.Fixed(6)) {
+        gridText("Type")
+        gridText("ID")
+        gridText("MCC")
+        gridText("MNC")
+        gridText("LAC")
+        gridText("Strength")
+        for (tel in cellTowers) {
+            gridText(tel.radioType)
+            gridText(tel.cellId.toString())
+            gridText(tel.mobileCountryCode.toString())
+            gridText(tel.mobileNetworkCode.toString())
+            gridText(tel.locationAreaCode.toString())
+            gridText(tel.signalStrength.toString())
+        }
+    }
+    HorizontalDivider()
+    Text("WiFi Access Points", Modifier.padding(8.dp), fontWeight = FontWeight.Bold)
+    LazyVerticalGrid(GridCells.Fixed(2)) {
+        gridText("MAC Address")
+        gridText("Strength")
+        for (ap in wifiAccessPoints) {
+            gridText(ap.macAddress)
+            gridText(ap.signalStrength.toString())
+        }
+    }
+}
+
+fun LazyGridScope.gridText(text: String) {
+    item {
+        Text(
+            text,
+            Modifier
+                .border(1.dp, LocalContentColor.current)
+                .padding(8.dp),
+            fontSize = 11.sp
+        )
+    }
+}
+
+@Composable
 fun SelectableText(text: String, modifier: Modifier) {
-    BasicTextField(text, {}, modifier, singleLine = true, readOnly = true, textStyle = LocalTextStyle.current.copy(
-        color = LocalContentColor.current,
-    ))
+    BasicTextField(text, {}, modifier, singleLine = true,
+        readOnly = true, textStyle = LocalTextStyle.current.copy(LocalContentColor.current))
 }
 
 val status = mutableStateOf("")
-val coords = mutableStateOf<Pair<Double, Double>?>(null)
-val accuracy = mutableStateOf<Double?>(null)
-val cellTowers = mutableStateOf(listOf<CellTower>())
-val wifiAccessPoints = mutableStateOf(listOf<WifiAccessPoint>())
+val coords = mutableStateOf<LocationValue?>(null)
+var cellTowers by mutableStateOf(listOf<CellTower>())
+var wifiAccessPoints by mutableStateOf(listOf<WifiAccessPoint>())
 
 @Serializable
 data class CellTower(
@@ -244,7 +178,7 @@ data class CellTower(
     val signalStrength: Long,
 ) {
     override fun equals(other: Any?): Boolean {
-        if(other !is CellTower) return false
+        if (other !is CellTower) return false
         return radioType == other.radioType &&
                 mobileCountryCode == other.mobileCountryCode &&
                 mobileNetworkCode == other.mobileNetworkCode &&
@@ -252,13 +186,14 @@ data class CellTower(
                 cellId == other.cellId
     }
 }
+
 @Serializable
 data class WifiAccessPoint(
     val macAddress: String,
     val signalStrength: Int? = null
 ) {
     override fun equals(other: Any?): Boolean {
-        if(other !is WifiAccessPoint) return false
+        if (other !is WifiAccessPoint) return false
         return macAddress == other.macAddress
     }
 }
@@ -272,7 +207,11 @@ data class Request(
 
 val anythingChanged = mutableStateOf(false)
 
-
+data class LocationValue(
+    val lat: Double,
+    val lon: Double,
+    val acc: Double
+)
 
 
 private const val minTimeout = 10 // 10 second interval minimum
@@ -281,22 +220,27 @@ private const val timeoutFactor = 2
 var curTimeout = minTimeout
 
 @SuppressLint("MissingPermission")
-suspend fun getCellInfo(ctx: Context): Pair<Pair<Double, Double>, Double> {
-    val tel = ctx.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+suspend fun getCellInfo(ctx: Context): LocationValue {
+    val telManager = ctx.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+    val wifiManager = ctx.getSystemService(Context.WIFI_SERVICE) as WifiManager
 
     //from Android M up must use getAllCellInfo
-    val tels = tel.allCellInfo.filter { it.isRegistered }.filterIsInstance<CellInfoLte>().map {
-        CellTower("lte", it.cellIdentity.mccString!!.toLong(), it.cellIdentity.mncString!!.toLong(), it.cellIdentity.tac.toLong(), it.cellIdentity.ci.toLong(), it.cellSignalStrength.dbm.toLong())
-    }
+    val tels = telManager.allCellInfo.filter { it.isRegistered }.filterIsInstance<CellInfoLte>().map {
+            CellTower(
+                "lte",
+                it.cellIdentity.mccString!!.toLong(),
+                it.cellIdentity.mncString!!.toLong(),
+                it.cellIdentity.tac.toLong(),
+                it.cellIdentity.ci.toLong(),
+                it.cellSignalStrength.dbm.toLong()
+            )
+        }
+    val wifis = wifiManager.scanResults.map { WifiAccessPoint(it.BSSID, it.level) }
 
-    val wifiManager = ctx.getSystemService(Context.WIFI_SERVICE) as WifiManager
-    val apList: List<ScanResult> = wifiManager.scanResults
-    val wifis = apList.map { WifiAccessPoint(it.BSSID, it.level) }
-
-    anythingChanged.value = (cellTowers.value != tels || wifiAccessPoints.value != wifis)
-    if(!anythingChanged.value) {
+    anythingChanged.value = (cellTowers != tels || wifiAccessPoints != wifis)
+    if (!anythingChanged.value) {
         curTimeout = min(curTimeout * timeoutFactor, maxTimeout)
-        return coords.value!! to accuracy.value!!
+        return coords.value!!
     }
 
     val client = HttpClient(CIO) {
@@ -311,59 +255,67 @@ suspend fun getCellInfo(ctx: Context): Pair<Pair<Double, Double>, Double> {
     }
     val res = response.bodyAsText()
     val json = JSONObject(res)
-    if(!json.has("accuracy")) {
+    if (!json.has("accuracy")) {
         curTimeout = min(curTimeout * timeoutFactor, maxTimeout)
-        return coords.value!! to accuracy.value!!
+        return coords.value!!
     }
     val acc = json.getDouble("accuracy")
     val lat = json.getJSONObject("location").getDouble("lat")
     val lon = json.getJSONObject("location").getDouble("lng")
 
     str1.value = json.toString(4) + "\n" + JSONObject(Json.encodeToString(resp)).toString(4)
-    cellTowers.value = tels
-    wifiAccessPoints.value = wifis
-    accuracy.value = acc
-    if(coords.value == Pair(lat, lon)) {
+    cellTowers = tels
+    wifiAccessPoints = wifis
+    if (coords.value == LocationValue(lat, lon, acc)) {
         curTimeout = min(curTimeout * timeoutFactor, maxTimeout)
-        return coords.value!! to accuracy.value!!
+        return coords.value!!
     }
 
-    coords.value = Pair(lat, lon)
+    coords.value = LocationValue(lat, lon, acc)
     curTimeout = minTimeout
 
-    return Pair(Pair(lat, lon), acc)
+    return LocationValue(lat, lon, acc)
 }
 
 fun isMockLocationAllowed(context: Context): Boolean {
     val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-    val op = AppOpsManager.OPSTR_MOCK_LOCATION
-    val mode = appOps.unsafeCheckOpNoThrow(op, android.os.Process.myUid(), context.packageName)
+    val mode = appOps.unsafeCheckOpNoThrow(
+        AppOpsManager.OPSTR_MOCK_LOCATION,
+        Process.myUid(),
+        context.packageName
+    )
     return mode == AppOpsManager.MODE_ALLOWED
 }
 
-fun setMock(latitude: Double, longitude: Double, accuracy: Double, ctx: Context): Boolean {
+fun setMock(location: LocationValue, ctx: Context): Boolean {
     if (!isMockLocationAllowed(ctx)) {
         Log.w("AltLocationServices", "Location mocking not allowed")
         return false
     }
     val lm = ctx.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
-    val mocLocationProvider = LocationManager.NETWORK_PROVIDER
-
     lm.addTestProvider(
-        mocLocationProvider, false, false,
-        false, false, true, true, true, ProviderProperties.POWER_USAGE_HIGH, ProviderProperties.ACCURACY_FINE
+        LocationManager.NETWORK_PROVIDER,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        ProviderProperties.POWER_USAGE_HIGH,
+        ProviderProperties.ACCURACY_FINE
     )
-    lm.setTestProviderEnabled(mocLocationProvider, true)
+    lm.setTestProviderEnabled(LocationManager.NETWORK_PROVIDER, true)
 
-    val loc = Location(mocLocationProvider)
-    val mockLocation = Location(mocLocationProvider) // a string
-    mockLocation.latitude = latitude // double
-    mockLocation.longitude = longitude
+    val loc = Location(LocationManager.NETWORK_PROVIDER)
+    val mockLocation = Location(LocationManager.NETWORK_PROVIDER)
+    mockLocation.latitude = location.lat
+    mockLocation.longitude = location.lon
     mockLocation.altitude = loc.altitude
     mockLocation.time = System.currentTimeMillis()
-    mockLocation.accuracy = accuracy.toFloat()
+    mockLocation.accuracy = location.acc.toFloat()
     mockLocation.elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos()
-    lm.setTestProviderLocation(mocLocationProvider, mockLocation)
+    lm.setTestProviderLocation(LocationManager.NETWORK_PROVIDER, mockLocation)
     return true
 }

@@ -17,61 +17,51 @@ import kotlinx.coroutines.withContext
 
 class GPSService : Service() {
 
-    private val CHANNEL_ID = "MyForegroundServiceChannel"
+    private val CHANNEL_ID = "Mock Location"
     private val NOTIFICATION_ID = 1
     private var serviceJob: Job? = null
 
     override fun onCreate() {
         super.onCreate()
-        Log.d("MyForegroundService", "onCreate")
+        Log.d("MockLocationService", "onCreate")
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, createNotification("Starting..."))
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d("MyForegroundService", "onStartCommand")
         startUpdatingNotification()
         return START_STICKY
     }
 
     private fun startUpdatingNotification() {
         serviceJob = CoroutineScope(Dispatchers.IO).launch {
-            var result: Pair<Pair<Double, Double>, Double>? = null
+            var result: LocationValue? = null
             while (true) {
                 try {
-                    result = func() // Call your function here
+                    Log.d("MockLocationService", "getCellInfo() called")
+                    result = getCellInfo(this@GPSService)
                     withContext(Dispatchers.Main) {
-                        updateNotification("Coord: ${result.first}")
+                        updateNotification("Coord: ${result.lon}, ${result.lat}")
                     }
                 } catch (e: Exception) {
-                    Log.e("MyForegroundService", "Error in func() or updating notification", e)
+                    Log.e("MockLocationService", "Error in getCellInfo() or updating notification", e)
                     withContext(Dispatchers.Main) {
                         updateNotification("Error: ${e.message}")
                     }
                 }
                 for(i in 0..(curTimeout/5)) {
-                    if (setMock(result!!.first.first, result.first.second, result.second, this@GPSService)){
-                        status.value = "Working"
-                    } else {
-                        status.value = "Mocking not allowed"
-                    }
+                    status.value =
+                        if (setMock(result!!, this@GPSService)) "Working" else "Mocking not allowed"
                     delay(5000L) // 5 seconds
                 }
             }
         }
     }
 
-    private suspend fun func(): Pair<Pair<Double, Double>, Double> {
-        val coords = getCellInfo(this@GPSService)
-        // Replace this with your actual function
-        Log.d("MyForegroundService", "func() called")
-        return coords
-    }
-
     private fun createNotificationChannel() {
         val serviceChannel = NotificationChannel(
             CHANNEL_ID,
-            "My Foreground Service Channel",
+            "Mock Location",
             NotificationManager.IMPORTANCE_NONE
         )
         val manager = getSystemService(NotificationManager::class.java)
@@ -83,7 +73,7 @@ class GPSService : Service() {
             .setContentTitle("AltLocationServices")
             .setContentText(text)
             .setSmallIcon(R.drawable.baseline_notifications_24) // Replace with your icon
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(NotificationCompat.PRIORITY_MIN)
             .build()
     }
 
@@ -95,7 +85,7 @@ class GPSService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        Log.d("MyForegroundService", "onDestroy")
+        Log.d("MockLocationService", "onDestroy")
         serviceJob?.cancel()
     }
 
