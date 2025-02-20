@@ -50,13 +50,17 @@ class GPSService : Service() {
                         updateNotification("Error: ${e.message}")
                     }
                 }
-                for(i in 0..60) {
-                    if (setMock(result!!.first.first, result.first.second, result.second, this@GPSService)){
-                        status.value = "Working"
-                    } else {
-                        status.value = "Mocking not allowed"
+                if (result == null) {
+                  delay(UPDATE_INTERVAL)
+                } else {
+                    for(i in 0..60) {
+                        if (setMock(result!!.first.first, result.first.second, result.second, this@GPSService)){
+                            status.value = "Working"
+                        } else {
+                            status.value = "Mocking not allowed"
+                        }
+                        delay(UPDATE_INTERVAL)
                     }
-                    delay(UPDATE_INTERVAL)
                 }
             }
         }
