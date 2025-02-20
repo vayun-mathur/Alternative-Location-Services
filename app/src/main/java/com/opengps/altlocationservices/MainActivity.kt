@@ -50,6 +50,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
@@ -252,6 +253,9 @@ suspend fun getCellInfo(ctx: Context): LocationValue {
     val response = client.post("https://api.beacondb.net/v1/geolocate") {
         contentType(ContentType.Application.Json)
         setBody(Json.encodeToString(resp))
+    }
+    if (response.status != HttpStatusCode.OK) {
+      throw Exception("Unexpected status code: ${response.status}")
     }
     val res = response.bodyAsText()
     val json = JSONObject(res)

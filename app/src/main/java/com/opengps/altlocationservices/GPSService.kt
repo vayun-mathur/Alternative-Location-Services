@@ -49,10 +49,14 @@ class GPSService : Service() {
                         updateNotification("Error: ${e.message}")
                     }
                 }
+                if (result == null) {
+                  delay(curTimeout*1000L)
+                } else {
                 for(i in 0..(curTimeout/5)) {
                     status.value =
                         if (setMock(result!!, this@GPSService)) "Working" else "Mocking not allowed"
                     delay(5000L) // 5 seconds
+                }
                 }
             }
         }
