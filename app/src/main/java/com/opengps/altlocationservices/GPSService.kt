@@ -10,6 +10,8 @@ import android.location.LocationManager
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import io.ktor.client.plugins.ClientRequestException
+import io.ktor.http.HttpStatusCode
 import java.io.IOException
 import java.nio.channels.UnresolvedAddressException
 import kotlinx.coroutines.CoroutineScope
@@ -61,9 +63,11 @@ class GPSService : Service() {
                 } catch (e: Exception) {
                     Log.e("MockLocationService", "Error in getCellInfo() or updating notification", e)
                     withContext(Dispatchers.Main) {
-                        when (e) {
-                            is IOException, is UnresolvedAddressException -> status.value = "Network error"
-                            else -> status.value = "Error: ${e.message}"
+                        status.value = when {
+                            e is IOException || e is UnresolvedAddressException -> "Network error"
+                            e is ClientRequestException && e.response.status == HttpStatusCode.NotFound ->
+                                "Location not found"
+                            else -> "Error: ${e.message}"
                         }
                         updateNotification(status.value)
                     }
