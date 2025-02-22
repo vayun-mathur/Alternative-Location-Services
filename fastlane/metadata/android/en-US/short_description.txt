@@ -1,0 +1,1 @@
+Connects to BeaconDB geolocation service to provide network location services.

@@ -1,0 +1,3 @@
+This app connects to the BeaconDB public domain wireless geolocation database to provide network based location services. Unlike standard GPS, this works underground and inside buildings. Unlike Google's location services, neither this app nor BeaconDB will sell your location data.
+
+If you are using this app, please install NeoStumbler to contribute to the BeaconDB dataset so you can get a more accurate location from this app.
