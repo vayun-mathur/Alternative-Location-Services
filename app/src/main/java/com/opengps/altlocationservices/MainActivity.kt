@@ -322,6 +322,7 @@ fun setMock(location: LocationValue, ctx: Context): Boolean {
     mockLocation.time = System.currentTimeMillis()
     mockLocation.accuracy = location.acc.toFloat()
     mockLocation.elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos()
+    mockLocation.isMock = false
     lm.setTestProviderLocation(LocationManager.NETWORK_PROVIDER, mockLocation)
     return true
 }
