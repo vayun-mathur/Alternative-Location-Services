@@ -75,10 +75,10 @@ class GPSService : Service() {
                 if (result == null) {
                   delay(curTimeout*1000L)
                 } else {
-                    for(i in 0..(curTimeout/5)) {
+                    for(i in 0..(curTimeout/2)) {
                         status.value =
                             if (setMock(result, this@GPSService)) "Working" else "Mocking not allowed"
-                        delay(5000L) // 5 seconds
+                        delay(2000L) // 2 seconds
                     }
                 }
             }

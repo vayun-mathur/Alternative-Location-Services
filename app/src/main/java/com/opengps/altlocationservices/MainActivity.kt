@@ -224,8 +224,8 @@ data class LocationValue(
 )
 
 
-private const val minTimeout = 10 // 10 second interval minimum
-private const val maxTimeout = 240 // 4 minutes maximum
+private const val minTimeout = 4 // 4 second interval minimum
+private const val maxTimeout = 128 // 2 minutes maximum
 private const val timeoutFactor = 2
 var curTimeout = minTimeout
 
