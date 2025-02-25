@@ -53,6 +53,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import java.time.LocalDateTime
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.json.JSONObject
@@ -119,6 +120,7 @@ fun MainPage() {
     SelectableText("Latitude: ${coords.value?.lat ?: ""}", Modifier.padding(8.dp))
     SelectableText("Longitude: ${coords.value?.lon ?: ""}", Modifier.padding(8.dp))
     SelectableText("Accuracy: ${coords.value?.acc ?: ""}", Modifier.padding(8.dp))
+    SelectableText("Timestamp: ${coords.value?.timestamp ?: ""}", Modifier.padding(8.dp))
     HorizontalDivider()
     Text("Cell Towers", Modifier.padding(8.dp), fontWeight = FontWeight.Bold)
     LazyVerticalGrid(GridCells.Fixed(6)) {
@@ -214,7 +216,8 @@ val anythingChanged = mutableStateOf(false)
 data class LocationValue(
     val lat: Double,
     val lon: Double,
-    val acc: Double
+    val acc: Double,
+    var timestamp: LocalDateTime
 )
 
 
@@ -244,6 +247,7 @@ suspend fun getCellInfo(ctx: Context): LocationValue {
     anythingChanged.value = (cellTowers != tels || wifiAccessPoints != wifis)
     if (!anythingChanged.value) {
         curTimeout = min(curTimeout * timeoutFactor, maxTimeout)
+        coords.value!!.timestamp = LocalDateTime.now()
         return coords.value!!
     }
 
@@ -270,15 +274,22 @@ suspend fun getCellInfo(ctx: Context): LocationValue {
 
     cellTowers = tels
     wifiAccessPoints = wifis
-    if (coords.value == LocationValue(lat, lon, acc)) {
-        curTimeout = min(curTimeout * timeoutFactor, maxTimeout)
-        return coords.value!!
+    curTimeout = if (
+        coords.value != null
+        &&
+        coords.value!!.lat == lat
+        &&
+        coords.value!!.lon == lon
+        &&
+        coords.value!!.acc == acc
+    ) {
+        min(curTimeout * timeoutFactor, maxTimeout)
+    } else {
+        minTimeout
     }
+    coords.value = LocationValue(lat, lon, acc, LocalDateTime.now())
 
-    coords.value = LocationValue(lat, lon, acc)
-    curTimeout = minTimeout
-
-    return LocationValue(lat, lon, acc)
+    return coords.value!!
 }
 
 fun isMockLocationAllowed(context: Context): Boolean {
