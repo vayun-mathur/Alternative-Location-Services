@@ -251,14 +251,12 @@ suspend fun getCellInfo(ctx: Context): LocationValue {
         install(ContentNegotiation) {
             json()
         }
+        expectSuccess = true
     }
     val resp = Request(tels, wifis, mapOf("ipf" to false))
     val response = client.post("https://api.beacondb.net/v1/geolocate") {
         contentType(ContentType.Application.Json)
         setBody(Json.encodeToString(resp))
-    }
-    if (response.status != HttpStatusCode.OK) {
-      throw Exception("Unexpected status code: ${response.status}")
     }
     val res = response.bodyAsText()
     val json = JSONObject(res)
