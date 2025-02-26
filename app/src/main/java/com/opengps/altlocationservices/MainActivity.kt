@@ -2,8 +2,10 @@ package com.opengps.altlocationservices
 
 import android.annotation.SuppressLint
 import android.app.AppOpsManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
@@ -54,6 +56,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import java.time.LocalDateTime
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.json.JSONObject
@@ -242,6 +245,19 @@ suspend fun getCellInfo(ctx: Context): LocationValue {
                 it.cellSignalStrength.dbm.toLong()
             )
         }
+
+    val scanCompleted = CompletableDeferred<Unit>()
+    val scanReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            context?.unregisterReceiver(this)
+            scanCompleted.complete(Unit)
+        }
+    }
+    ctx.registerReceiver(scanReceiver, IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION))
+    // WifiManager.startScan() was deprecated and moved to com.google.android.gms:play-services-location
+    if(@Suppress("DEPRECATION") wifiManager.startScan()) {
+        scanCompleted.await()
+    }
     val wifis = wifiManager.scanResults.map { WifiAccessPoint(it.BSSID, it.level) }
 
     anythingChanged.value = (cellTowers != tels || wifiAccessPoints != wifis)
