@@ -10,7 +10,7 @@ to contribute to the BeaconDB dataset so you can get a more accurate location fr
 
 ## Installation
 
-[![](https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png)](https://apt.izzysoft.de/fdroid/index/apk/com.opengps.altlocationservices)
+[![](https://camo.githubusercontent.com/ad66733a6acbdd2c9dbe28abf645872f0146e6905345fb89785a79eee2669867/68747470733a2f2f6664726f69642e6769746c61622e696f2f617274776f726b2f62616467652f6765742d69742d6f6e2d656e2e737667)](https://f-droid.org/packages/com.opengps.altlocationservices/)
 
 - install app from releases or from f-droid with the link above
 - give app location and notification permissions
