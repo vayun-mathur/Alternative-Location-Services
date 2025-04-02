@@ -32,6 +32,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,7 +54,6 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
-import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import java.time.LocalDateTime
@@ -119,11 +120,19 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainPage() {
+    val context = LocalContext.current
     SelectableText("Status: ${status.value}", Modifier.padding(8.dp))
     SelectableText("Latitude: ${coords.value?.lat ?: ""}", Modifier.padding(8.dp))
     SelectableText("Longitude: ${coords.value?.lon ?: ""}", Modifier.padding(8.dp))
     SelectableText("Accuracy: ${coords.value?.acc ?: ""}", Modifier.padding(8.dp))
     SelectableText("Timestamp: ${coords.value?.timestamp ?: ""}", Modifier.padding(8.dp))
+    OutlinedButton({
+        val uri = "geo:${coords.value?.lat},${coords.value?.lon}"
+        val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(uri))
+        context.startActivity(intent)
+    }) {
+        Text("Open Estimated Coords in Maps")
+    }
     HorizontalDivider()
     Text("Cell Towers", Modifier.padding(8.dp), fontWeight = FontWeight.Bold)
     LazyVerticalGrid(GridCells.Fixed(6)) {
