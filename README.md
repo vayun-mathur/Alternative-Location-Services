@@ -1,5 +1,9 @@
 # Alternative Location Services
 
+I am no longer working on this app, as I no longer use it myself. However, I will still accept pull requests.
+
+## Intro
+
 This app connects to the [BeaconDB](https://beacondb.net/) public domain wireless geolocation
 database to provide network based location services. Unlike standard GPS, this works underground
 and inside buildings. Unlike Google's location services, neither this app nor BeaconDB will sell
